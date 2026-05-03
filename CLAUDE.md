@@ -4,7 +4,8 @@ Python-first benchmark framework wrapping vllm bench serve for LLM performance e
 
 ## Project layout
 
-- `lm_benchmarks/` — Python package
+- `lm_benchmarks/` — Python package (source)
+- `tests/` — pytest test suite
 - `bin/benchmark` — bash CLI entry point
 - `results/` — benchmark output (git-ignored)
 - `docs/plans/` — design and implementation plans
@@ -20,6 +21,6 @@ Python-first benchmark framework wrapping vllm bench serve for LLM performance e
 
 ## Commands
 
-- Run all tests: `python -m pytest lm_benchmarks/ -v`
-- Run single test: `python -m pytest lm_benchmarks/test_<module>.py::test_name -v`
+- Run all tests: `python -m pytest tests/ -v`
+- Run single test: `python -m pytest tests/test_<module>.py::test_name -v`
 - Install in dev mode: `pip install -e ".[dev]"`

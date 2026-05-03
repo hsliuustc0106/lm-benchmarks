@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-# Entry point for lm-benchmarks. Delegates everything to Python.
-exec python -m lm_benchmarks.cli "$@"
