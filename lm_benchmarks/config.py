@@ -69,10 +69,9 @@ def load(
         if env_val is not None:
             cfg[key] = _coerce(env_val, DEFAULTS[key])
 
-    # Layer 4: CLI overrides
+    # Layer 4: CLI overrides (highest precedence, all keys accepted)
     if cli_overrides:
         for key, value in cli_overrides.items():
-            if key in DEFAULTS:
-                cfg[key] = value
+            cfg[key] = value
 
     return cfg
