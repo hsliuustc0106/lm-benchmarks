@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "lm-benchmarks"
+version = "0.1.0"
+description = "LLM benchmark framework wrapping vllm bench serve"
+requires-python = ">=3.10"
+dependencies = [
+    "click>=8.0",
+    "pandas>=2.0",
+    "matplotlib>=3.7",
+    "seaborn>=0.12",
+    "requests>=2.31",
+]
+
+[project.scripts]
+benchmark = "lm_benchmarks.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-mock>=3.10",
+]
