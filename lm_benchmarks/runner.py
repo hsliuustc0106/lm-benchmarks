@@ -30,6 +30,7 @@ def _build_bench_cmd(
         "--num-prompts", str(num_prompts),
         "--save-result",
         "--result-dir", result_dir,
+        "--result-filename", "vllm_result.json",
     ]
     if dataset == "random":
         cmd.extend(["--input-len", str(input_len or 512)])
