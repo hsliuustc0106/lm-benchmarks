@@ -8,3 +8,4 @@ results/*
 .env
 *.swp
 .DS_Store
+.worktrees/
