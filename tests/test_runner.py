@@ -22,6 +22,37 @@ def make_config(**overrides):
     return cfg
 
 
+def test_experiment_name_random_defaults():
+    name = runner._experiment_name({
+        "dataset": "random", "input_len": 512, "output_len": 128,
+    })
+    assert name == "random_512in_128out"
+
+
+def test_experiment_name_random_custom_lengths():
+    name = runner._experiment_name({
+        "dataset": "random", "input_len": 8192, "output_len": 1024,
+    })
+    assert name == "random_8192in_1024out"
+
+
+def test_experiment_name_sharegpt():
+    name = runner._experiment_name({"dataset": "sharegpt"})
+    assert name == "sharegpt"
+
+
+def test_experiment_name_sonnet():
+    name = runner._experiment_name({"dataset": "sonnet"})
+    assert name == "sonnet"
+
+
+def test_experiment_name_custom_dataset():
+    name = runner._experiment_name({
+        "dataset": "custom", "dataset_path": "/data/my_prompts.jsonl",
+    })
+    assert name == "custom_my_prompts"
+
+
 def test_build_bench_command():
     """_build_bench_cmd constructs correct vllm bench serve command."""
     cmd = runner._build_bench_cmd(

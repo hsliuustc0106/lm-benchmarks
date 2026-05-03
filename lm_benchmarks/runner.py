@@ -9,6 +9,21 @@ from typing import Any, Dict, List, Optional, Tuple
 from lm_benchmarks import metrics, plot, serve, utils
 
 
+def _experiment_name(cfg: Dict[str, Any]) -> str:
+    """Derive experiment directory name from benchmark parameters."""
+    dataset = cfg.get("dataset", "random")
+    dataset_path = cfg.get("dataset_path")
+
+    if dataset_path:
+        stem = Path(dataset_path).stem
+        return f"custom_{stem}"
+    if dataset == "random":
+        input_len = cfg.get("input_len", 512)
+        output_len = cfg.get("output_len", 128)
+        return f"random_{input_len}in_{output_len}out"
+    return dataset
+
+
 def _build_bench_cmd(
     port: int,
     request_rate: float,
