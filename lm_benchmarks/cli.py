@@ -76,6 +76,7 @@ def sweep(
 @click.option("--input-len", type=int, default=None)
 @click.option("--output-len", type=int, default=None)
 @click.option("--num-prompts", type=int, default=None)
+@click.option("--timeout", type=int, default=None, help="Benchmark timeout in seconds")
 @click.option("--config-file", default=None)
 @click.option("--results-dir", default=None)
 def run(
@@ -87,6 +88,7 @@ def run(
     input_len: Optional[int],
     output_len: Optional[int],
     num_prompts: Optional[int],
+    timeout: Optional[int],
     config_file: Optional[str],
     results_dir: Optional[str],
 ):
@@ -104,6 +106,8 @@ def run(
         cli_overrides["output_len"] = output_len
     if num_prompts is not None:
         cli_overrides["num_prompts"] = num_prompts
+    if timeout is not None:
+        cli_overrides["timeout"] = timeout
 
     cfg = config.load(env_file=config_file, cli_overrides=cli_overrides)
 

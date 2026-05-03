@@ -25,7 +25,7 @@ def _build_bench_cmd(
         "--port", str(port),
         "--request-rate", str(request_rate),
         "--max-concurrency", str(max_concurrency),
-        "--dataset", dataset,
+        "--dataset-name", dataset,
         "--num-prompts", str(num_prompts),
         "--save-result",
         "--result-dir", result_dir,
