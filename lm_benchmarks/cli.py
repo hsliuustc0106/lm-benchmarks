@@ -1,11 +1,13 @@
 """CLI entry point for lm-benchmarks."""
+import subprocess
 import sys
 from pathlib import Path
 from typing import List, Optional
 
 import click
 
-from lm_benchmarks import config, runner, serve
+from lm_benchmarks import config, runner
+from lm_benchmarks import serve as serve_mod
 from lm_benchmarks import plot as plot_mod
 from lm_benchmarks.utils import model_safe_name
 
@@ -14,6 +16,53 @@ from lm_benchmarks.utils import model_safe_name
 def main():
     """LM Benchmarks — vLLM benchmark framework."""
     pass
+
+
+@main.command(context_settings=dict(ignore_unknown_options=True, allow_extra_args=True))
+@click.option("--model", required=True, help="Model identifier")
+@click.option("--port", type=int, default=None, help="Server port")
+@click.option("--results-dir", default=None, help="Results directory")
+@click.pass_context
+def serve(ctx: click.Context, model: str, port: Optional[int], results_dir: Optional[str]):
+    """Start vllm server with managed logging.
+
+    All unknown arguments are forwarded directly to vllm serve.
+
+    Examples:
+
+        benchmark serve --model Qwen/Qwen3.6-35B-A3B
+
+        benchmark serve --model Qwen/Qwen3.6-35B-A3B --max-model-len 131072
+
+        benchmark serve --model Qwen/Qwen3.6-35B-A3B --tensor-parallel-size 4 --port 8081
+    """
+    cli_overrides = {"model": model}
+    if results_dir:
+        cli_overrides["results_dir"] = results_dir
+    if port is not None:
+        cli_overrides["port"] = port
+
+    cfg = config.load(cli_overrides=cli_overrides)
+    port = cfg["port"]
+    results_path = Path(cfg["results_dir"])
+    model_safe = model_safe_name(model)
+    log_dir = results_path / model_safe
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    extra_args = list(ctx.args) if ctx.args else None
+    pid, log_path = serve_mod.start(model=model, port=port, log_dir=str(log_dir), additional_args=extra_args)
+
+    click.echo(f"vLLM server started (PID {pid})")
+    click.echo(f"Log: {log_path}")
+    click.echo("--- server log ---")
+
+    try:
+        subprocess.call(["tail", "-f", str(log_path)])
+    except FileNotFoundError:
+        input("Press Enter to stop server...")
+    finally:
+        serve_mod.stop(pid)
+        click.echo("Server stopped.")
 
 
 @main.command()
@@ -28,6 +77,8 @@ def main():
 @click.option("--timeout", type=int, default=None, help="Benchmark timeout in seconds")
 @click.option("--config-file", default=None, help="Path to .env config file")
 @click.option("--results-dir", default=None, help="Results directory")
+@click.option("--no-server", is_flag=True, default=False, help="Skip starting vllm server (use existing)")
+@click.option("--server-log", default=None, help="Path to external vllm server log (used with --no-server)")
 def sweep(
     model: str,
     rates: tuple,
@@ -40,6 +91,8 @@ def sweep(
     timeout: Optional[int],
     config_file: Optional[str],
     results_dir: Optional[str],
+    no_server: bool,
+    server_log: Optional[str],
 ):
     """Run parameter sweep across rate x concurrency combinations."""
     cli_overrides = {"model": model}
@@ -64,7 +117,7 @@ def sweep(
     if concurrencies:
         cfg["concurrencies"] = list(concurrencies)
 
-    runner.sweep(cfg, request_rates=request_rates)
+    runner.sweep(cfg, request_rates=request_rates, no_server=no_server, server_log_path=server_log)
 
 
 @main.command()
@@ -79,6 +132,8 @@ def sweep(
 @click.option("--timeout", type=int, default=None, help="Benchmark timeout in seconds")
 @click.option("--config-file", default=None)
 @click.option("--results-dir", default=None)
+@click.option("--no-server", is_flag=True, default=False, help="Skip starting vllm server (use existing)")
+@click.option("--server-log", default=None, help="Path to external vllm server log (used with --no-server)")
 def run(
     model: str,
     rate: float,
@@ -91,6 +146,8 @@ def run(
     timeout: Optional[int],
     config_file: Optional[str],
     results_dir: Optional[str],
+    no_server: bool,
+    server_log: Optional[str],
 ):
     """Run a single benchmark."""
     cli_overrides = {"model": model}
@@ -111,7 +168,7 @@ def run(
 
     cfg = config.load(env_file=config_file, cli_overrides=cli_overrides)
 
-    cfg_path, met_path = runner.run_single(cfg, rate, concurrency)
+    cfg_path, met_path = runner.run_single(cfg, rate, concurrency, no_server=no_server, server_log_path=server_log)
     click.echo(f"Config: {cfg_path}")
     click.echo(f"Metrics: {met_path}")
 

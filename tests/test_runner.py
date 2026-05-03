@@ -44,7 +44,7 @@ def test_build_bench_command():
     assert "8.0" in cmd
     assert "--max-concurrency" in cmd
     assert "32" in cmd
-    assert "--dataset" in cmd
+    assert "--dataset-name" in cmd
     assert "sharegpt" in cmd
     assert "--dataset-path" in cmd
     assert "/data/sharegpt.json" in cmd
@@ -129,11 +129,36 @@ def test_run_single_stops_server_even_on_bench_failure(tmp_path):
     mock_serve.stop.assert_called_once_with(12345)
 
 
+def test_run_single_no_server_skips_start_stop(tmp_path):
+    """no_server=True skips serve.start and serve.stop."""
+    with patch("lm_benchmarks.runner.serve") as mock_serve:
+        mock_serve.get_engine_version.return_value = "vllm 0.11.0"
+
+        with patch("lm_benchmarks.runner.metrics") as mock_metrics:
+            mock_metrics.collect.return_value = (
+                Path("/tmp/run_config.json"),
+                Path("/tmp/run_metrics.json"),
+            )
+
+            with patch("subprocess.run") as mock_run:
+                mock_run.return_value = MagicMock(returncode=0)
+                with patch("lm_benchmarks.runner.utils.get_gpu_info", return_value=[]):
+                    runner.run_single(
+                        config=make_config(results_dir=str(tmp_path)),
+                        request_rate=8.0,
+                        max_concurrency=32,
+                        no_server=True,
+                    )
+
+    mock_serve.start.assert_not_called()
+    mock_serve.stop.assert_not_called()
+
+
 def test_sweep_iterates_over_combinations(tmp_path):
     """sweep() runs all rate x concurrency combinations."""
     call_args = []
 
-    def fake_run_single(config, request_rate, max_concurrency):
+    def fake_run_single(config, request_rate, max_concurrency, **kwargs):
         call_args.append((request_rate, max_concurrency))
         return Path(f"/tmp/run_{request_rate}_{max_concurrency}.json"), Path("/tmp/metrics.json")
 
@@ -164,7 +189,7 @@ def test_sweep_resumes_from_checkpoint(tmp_path):
 
     call_args = []
 
-    def fake_run_single(config, request_rate, max_concurrency):
+    def fake_run_single(config, request_rate, max_concurrency, **kwargs):
         call_args.append((request_rate, max_concurrency))
         out_dir = tmp_path / f"rate_{request_rate}_conc_{max_concurrency}"
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -183,6 +208,36 @@ def test_sweep_resumes_from_checkpoint(tmp_path):
 
     # Only (8.0, 4) should run; (8.0, 1) was already done
     assert call_args == [(8.0, 4)]
+
+
+def test_run_single_no_server_with_external_log(tmp_path):
+    """no_server=True with server_log_path copies log into run dir."""
+    server_log = tmp_path / "external_server.log"
+    server_log.write_text("server started\nhealth ok\n")
+
+    with patch("lm_benchmarks.runner.serve") as mock_serve:
+        mock_serve.get_engine_version.return_value = "vllm 0.11.0"
+
+        with patch("lm_benchmarks.runner.metrics") as mock_metrics:
+            mock_metrics.collect.return_value = (
+                Path("/tmp/run_config.json"),
+                Path("/tmp/run_metrics.json"),
+            )
+
+            with patch("subprocess.run") as mock_run:
+                mock_run.return_value = MagicMock(returncode=0)
+                with patch("lm_benchmarks.runner.utils.get_gpu_info", return_value=[]):
+                    runner.run_single(
+                        config=make_config(results_dir=str(tmp_path)),
+                        request_rate=8.0,
+                        max_concurrency=4,
+                        no_server=True,
+                        server_log_path=str(server_log),
+                    )
+
+    copied = tmp_path / "test__model" / "sweeps" / "rate_8.0_conc_4" / "server.log"
+    assert copied.exists()
+    assert copied.read_text() == "server started\nhealth ok\n"
 
 
 def test_gpu_sampling_happens_during_benchmark(tmp_path):

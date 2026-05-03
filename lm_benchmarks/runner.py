@@ -1,4 +1,5 @@
 """Benchmark orchestration: sweep, single run, GPU sampling."""
+import shutil
 import subprocess
 import threading
 import time
@@ -55,9 +56,13 @@ def run_single(
     config: Dict[str, Any],
     request_rate: float,
     max_concurrency: int,
+    no_server: bool = False,
+    server_log_path: Optional[str] = None,
 ) -> Tuple[Path, Path]:
     """Run a single benchmark: start server, bench, collect, stop.
 
+    When no_server=True the caller is responsible for running vllm serve.
+    server_log_path is an external server log to copy into the run directory.
     Returns (run_config_path, run_metrics_path).
     """
     model = config["model"]
@@ -80,16 +85,18 @@ def run_single(
     gpu_info = utils.get_gpu_info()
 
     server_pid = None
+    log_path = None
     gpu_samples: List[Dict[str, Any]] = []
 
     try:
-        # 1. START
-        log_dir = run_dir
-        server_pid, log_path = serve.start(
-            model=model,
-            port=port,
-            log_dir=str(log_dir),
-        )
+        # 1. START (unless skipping)
+        if not no_server:
+            log_path = run_dir / "server.log"
+            server_pid, log_path = serve.start(
+                model=model,
+                port=port,
+                log_dir=str(run_dir),
+            )
 
         # 2. BENCH with GPU sampling in background
         bench_cmd = _build_bench_cmd(
@@ -114,9 +121,17 @@ def run_single(
         subprocess.run(bench_cmd, check=True, timeout=timeout)
 
     finally:
-        # 4. STOP -- always
+        # 4. STOP -- only if we started it
         if server_pid is not None:
             serve.stop(server_pid)
+
+    # External server log capture
+    if no_server and server_log_path:
+        src = Path(server_log_path)
+        if src.exists():
+            dst = run_dir / "server.log"
+            shutil.copy2(src, dst)
+            log_path = dst
 
     # 3. COLLECT
     run_config_data = {
@@ -148,10 +163,13 @@ def run_single(
 def sweep(
     config: Dict[str, Any],
     request_rates: Optional[List[float]] = None,
+    no_server: bool = False,
+    server_log_path: Optional[str] = None,
 ) -> List[Tuple[Path, Path]]:
     """Run parameter sweep across all rate x concurrency combinations.
 
     Skips combinations that already have run_metrics.json (checkpoint/resume).
+    When no_server=True the caller is responsible for running vllm serve.
     Returns list of (run_config_path, run_metrics_path) for completed runs.
     """
     rates = request_rates or [config["request_rate"]]
@@ -180,7 +198,9 @@ def sweep(
             print(f"[{completed + failed + 1}/{total}] rate={rate}, conc={conc}")
 
             try:
-                cfg_path, met_path = run_single(config, rate, conc)
+                cfg_path, met_path = run_single(
+                    config, rate, conc, no_server=no_server, server_log_path=server_log_path,
+                )
                 results.append((cfg_path, met_path))
                 completed += 1
             except Exception as e:
