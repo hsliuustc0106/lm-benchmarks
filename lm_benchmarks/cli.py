@@ -21,9 +21,8 @@ def main():
 @main.command(context_settings=dict(ignore_unknown_options=True, allow_extra_args=True))
 @click.option("--model", required=True, help="Model identifier")
 @click.option("--port", type=int, default=None, help="Server port")
-@click.option("--results-dir", default=None, help="Results directory")
 @click.pass_context
-def serve(ctx: click.Context, model: str, port: Optional[int], results_dir: Optional[str]):
+def serve(ctx: click.Context, model: str, port: Optional[int]):
     """Start vllm server with managed logging.
 
     All unknown arguments are forwarded directly to vllm serve.
@@ -37,8 +36,6 @@ def serve(ctx: click.Context, model: str, port: Optional[int], results_dir: Opti
         benchmark serve --model Qwen/Qwen3.6-35B-A3B --tensor-parallel-size 4 --port 8081
     """
     cli_overrides = {"model": model}
-    if results_dir:
-        cli_overrides["results_dir"] = results_dir
     if port is not None:
         cli_overrides["port"] = port
 
@@ -76,7 +73,6 @@ def serve(ctx: click.Context, model: str, port: Optional[int], results_dir: Opti
 @click.option("--num-prompts", type=int, default=None, help="Number of prompts")
 @click.option("--timeout", type=int, default=None, help="Benchmark timeout in seconds")
 @click.option("--config-file", default=None, help="Path to .env config file")
-@click.option("--results-dir", default=None, help="Results directory")
 @click.option("--no-server", is_flag=True, default=False, help="Skip starting vllm server (use existing)")
 @click.option("--server-log", default=None, help="Path to external vllm server log (used with --no-server)")
 def sweep(
@@ -90,14 +86,11 @@ def sweep(
     num_prompts: Optional[int],
     timeout: Optional[int],
     config_file: Optional[str],
-    results_dir: Optional[str],
     no_server: bool,
     server_log: Optional[str],
 ):
     """Run parameter sweep across rate x concurrency combinations."""
     cli_overrides = {"model": model}
-    if results_dir:
-        cli_overrides["results_dir"] = results_dir
     if dataset:
         cli_overrides["dataset"] = dataset
     if dataset_path:
@@ -131,7 +124,6 @@ def sweep(
 @click.option("--num-prompts", type=int, default=None)
 @click.option("--timeout", type=int, default=None, help="Benchmark timeout in seconds")
 @click.option("--config-file", default=None)
-@click.option("--results-dir", default=None)
 @click.option("--no-server", is_flag=True, default=False, help="Skip starting vllm server (use existing)")
 @click.option("--server-log", default=None, help="Path to external vllm server log (used with --no-server)")
 def run(
@@ -145,14 +137,11 @@ def run(
     num_prompts: Optional[int],
     timeout: Optional[int],
     config_file: Optional[str],
-    results_dir: Optional[str],
     no_server: bool,
     server_log: Optional[str],
 ):
     """Run a single benchmark."""
     cli_overrides = {"model": model}
-    if results_dir:
-        cli_overrides["results_dir"] = results_dir
     if dataset:
         cli_overrides["dataset"] = dataset
     if dataset_path:

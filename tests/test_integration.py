@@ -57,8 +57,7 @@ def test_sweep_end_to_end(tmp_path):
                                 "--concurrencies", "1",
                                 "--concurrencies", "4",
                                 "--num-prompts", "10",
-                                "--results-dir", str(results_dir),
-                            ])
+                            ], env={"RESULTS_DIR": str(results_dir)})
 
     assert result.exit_code == 0
 
@@ -115,8 +114,7 @@ def test_run_single_end_to_end(tmp_path):
                     "--rate", "8.0",
                     "--concurrency", "32",
                     "--num-prompts", "10",
-                    "--results-dir", str(results_dir),
-                ])
+                ], env={"RESULTS_DIR": str(results_dir)})
 
     assert result.exit_code == 0
     assert "Metrics:" in result.output
