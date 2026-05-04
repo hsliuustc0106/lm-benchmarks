@@ -91,8 +91,9 @@ def run_single(
     results_dir = Path(config["results_dir"])
     model_safe = utils.model_safe_name(model)
 
+    experiment = _experiment_name(config)
     run_dir = (
-        results_dir / model_safe / "sweeps" /
+        results_dir / model_safe / experiment /
         f"rate_{request_rate}_conc_{max_concurrency}"
     )
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -192,6 +193,7 @@ def sweep(
     concurrencies = config["concurrencies"]
     results_dir = Path(config["results_dir"])
     model_safe = utils.model_safe_name(config["model"])
+    experiment = _experiment_name(config)
 
     results: List[Tuple[Path, Path]] = []
     completed = 0
@@ -201,7 +203,7 @@ def sweep(
     for rate in rates:
         for conc in concurrencies:
             run_dir = (
-                results_dir / model_safe / "sweeps" /
+                results_dir / model_safe / experiment /
                 f"rate_{rate}_conc_{conc}"
             )
 
@@ -226,8 +228,8 @@ def sweep(
     print(f"\nSweep complete: {completed} succeeded, {failed} failed, {total} total")
 
     # Generate plots from all completed runs
-    sweep_dir = results_dir / model_safe / "sweeps"
-    if results or list(sweep_dir.glob("*/run_metrics.json")):
-        plot.generate(sweep_dir)
+    experiment_dir = results_dir / model_safe / experiment
+    if results or list(experiment_dir.glob("*/run_metrics.json")):
+        plot.generate(experiment_dir)
 
     return results
