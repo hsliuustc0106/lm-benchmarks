@@ -213,8 +213,8 @@ def test_sweep_iterates_over_combinations(tmp_path):
 def test_sweep_resumes_from_checkpoint(tmp_path):
     """sweep() skips combinations that already have run_metrics.json."""
     # Pre-create metrics for (8.0, 1) to simulate a completed run
-    # Must match the path the runner constructs: results_dir / model_safe / "sweeps" / "rate_{rate}_conc_{conc}"
-    done_dir = tmp_path / "test__model" / "sweeps" / "rate_8.0_conc_1"
+    # Must match the path the runner constructs: results_dir / model_safe / "random_512in_128out" / "rate_{rate}_conc_{conc}"
+    done_dir = tmp_path / "test__model" / "random_512in_128out" / "rate_8.0_conc_1"
     done_dir.mkdir(parents=True)
     (done_dir / "run_metrics.json").write_text("{}")
 
@@ -266,7 +266,7 @@ def test_run_single_no_server_with_external_log(tmp_path):
                         server_log_path=str(server_log),
                     )
 
-    copied = tmp_path / "test__model" / "sweeps" / "rate_8.0_conc_4" / "server.log"
+    copied = tmp_path / "test__model" / "random_512in_128out" / "rate_8.0_conc_4" / "server.log"
     assert copied.exists()
     assert copied.read_text() == "server started\nhealth ok\n"
 
