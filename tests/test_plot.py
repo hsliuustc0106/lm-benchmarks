@@ -7,7 +7,7 @@ import lm_benchmarks.plot as plot
 def make_sweep_dir(tmp_path):
     """Create a sweep directory with run_metrics.json files."""
     sweep = tmp_path / "sweeps"
-    sweep.mkdir()
+    sweep.mkdir(parents=True)
 
     runs = [
         ("rate_8.0_conc_1", 8.0, 1, 200.0, 4000.0),
@@ -65,3 +65,82 @@ def test_generate_skips_when_no_metrics(tmp_path):
     sweep = tmp_path / "empty_sweep"
     sweep.mkdir()
     plot.generate(sweep)  # should not crash
+
+
+# --- compare_sweeps ---
+
+def test_compare_sweeps_creates_plot_files(tmp_path):
+    """compare_sweeps creates a comparison PNG with multiple lines."""
+    d1 = make_sweep_dir(tmp_path / "sweep_a")
+    d2 = make_sweep_dir(tmp_path / "sweep_b")
+    out = tmp_path / "comparison.png"
+
+    plot.compare_sweeps([d1, d2], labels=["8K Input", "1K Input"], output=out)
+
+    assert out.exists()
+    assert out.stat().st_size > 0
+
+
+def test_compare_sweeps_requires_matching_labels(tmp_path):
+    """compare_sweeps raises when sweep_dirs and labels length differ."""
+    d = make_sweep_dir(tmp_path / "sweep")
+    try:
+        plot.compare_sweeps([d], labels=["A", "B"], output=tmp_path / "x.png")
+        assert False, "should have raised"
+    except ValueError:
+        pass
+
+
+# --- throughput vs tokens-per-user ---
+
+def test_plot_throughput_vs_tpu_creates_plot(tmp_path):
+    """plot_throughput_vs_tpu generates a scatter PNG."""
+    df = _make_sweep_df(make_sweep_dir(tmp_path / "sweep"))
+    out = tmp_path / "tput_vs_tpu.png"
+
+    plot.plot_throughput_vs_tpu(df, out)
+
+    assert out.exists()
+    assert out.stat().st_size > 0
+
+
+def test_plot_throughput_vs_tpu_empty( tmp_path):
+    """plot_throughput_vs_tpu with empty DataFrame does not crash."""
+    import pandas as pd
+    df = pd.DataFrame()
+    out = tmp_path / "empty.png"
+
+    plot.plot_throughput_vs_tpu(df, out)
+
+    assert not out.exists()  # no data → no plot
+
+
+# --- heatmap ---
+
+def test_plot_heatmap_creates_plot(tmp_path):
+    """plot_heatmap generates an annotated heatmap PNG."""
+    df = _make_sweep_df(make_sweep_dir(tmp_path / "sweep"))
+    out = tmp_path / "heatmap.png"
+
+    plot.plot_heatmap(df, out, metric="mean_ttft_ms")
+
+    assert out.exists()
+    assert out.stat().st_size > 0
+
+
+def test_plot_heatmap_empty(tmp_path):
+    """plot_heatmap with empty DataFrame does not crash."""
+    import pandas as pd
+    df = pd.DataFrame()
+    out = tmp_path / "empty_heat.png"
+
+    plot.plot_heatmap(df, out, metric="mean_ttft_ms")
+
+    assert not out.exists()
+
+
+# --- helpers for tests ---
+
+def _make_sweep_df(sweep_dir):
+    """Build a DataFrame like _load_sweep_results would produce."""
+    return plot._load_sweep_results(sweep_dir)

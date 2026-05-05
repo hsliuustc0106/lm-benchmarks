@@ -171,29 +171,51 @@ def run(
 @main.command()
 @click.argument("results_dir", type=click.Path(exists=True))
 @click.option("--output", "-o", default=None, help="Output directory for plots")
-def plot(results_dir: str, output: Optional[str]):
+@click.option("--heatmap", is_flag=True, default=False, help="Generate heatmaps for TTFT, TPOT, throughput")
+@click.option("--tput-vs-tpu", "tput_tpu", is_flag=True, default=False, help="Generate throughput vs tokens-per-user plot")
+def plot(results_dir: str, output: Optional[str], heatmap: bool, tput_tpu: bool):
     """Generate plots from sweep results."""
     sweep_dir = Path(results_dir)
-    plot_mod.generate(sweep_dir)
+    output_dir = Path(output) if output else sweep_dir / "plots"
+
+    if not heatmap and not tput_tpu:
+        # Default: existing standard plots
+        plot_mod.generate(sweep_dir)
+        return
+
+    df = plot_mod._load_sweep_results(sweep_dir)
+    if df is None or df.empty:
+        click.echo("No metrics found")
+        return
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    if tput_tpu:
+        path = output_dir / "throughput_vs_tokens_per_user.png"
+        plot_mod.plot_throughput_vs_tpu(df, path)
+        click.echo(f"  {path}")
+
+    if heatmap:
+        for metric in ["mean_ttft_ms", "mean_tpot_ms", "output_throughput"]:
+            path = output_dir / f"heatmap_{metric}.png"
+            plot_mod.plot_heatmap(df, path, metric=metric)
+            click.echo(f"  {path}")
 
 
 @main.command()
 @click.argument("left", type=click.Path(exists=True))
 @click.argument("right", type=click.Path(exists=True))
-def compare(left: str, right: str):
-    """Compare two sweep result directories."""
-    import json
-
-    left_dir = Path(left)
-    right_dir = Path(right)
-
-    left_metrics = list(left_dir.glob("**/run_metrics.json"))
-    right_metrics = list(right_dir.glob("**/run_metrics.json"))
-
-    click.echo(f"Left:  {len(left_metrics)} runs in {left}")
-    click.echo(f"Right: {len(right_metrics)} runs in {right}")
-
-    click.echo("Detailed comparison coming soon.")
+@click.option("--output", "-o", default="results/comparison.png", help="Output PNG path")
+@click.option("--label-left", default="Left", help="Label for left sweep")
+@click.option("--label-right", default="Right", help="Label for right sweep")
+def compare(left: str, right: str, output: str, label_left: str, label_right: str):
+    """Overlay two sweep result directories on shared axes."""
+    plot_mod.compare_sweeps(
+        [Path(left), Path(right)],
+        labels=[label_left, label_right],
+        output=Path(output),
+    )
+    click.echo(f"Comparison saved to {output}")
 
 
 @main.command()

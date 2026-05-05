@@ -1,6 +1,6 @@
 """Plot generation: throughput-vs-ttft, concurrency scaling, tokens per user."""
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import matplotlib
 matplotlib.use("Agg")  # non-interactive backend
@@ -108,6 +108,102 @@ def _plot_tokens_per_user(df: pd.DataFrame, output: Path) -> None:
     ax.set_title("Tokens per Concurrent User")
     ax.legend()
     ax.grid(True, alpha=0.3)
+
+    fig.savefig(output, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
+def compare_sweeps(sweep_dirs: List[Path], labels: List[str], output: Path) -> None:
+    """Overlay throughput + TTFT from multiple sweep directories on shared axes."""
+    if len(sweep_dirs) != len(labels):
+        raise ValueError(f"Got {len(sweep_dirs)} sweep dirs but {len(labels)} labels")
+
+    dfs: List[pd.DataFrame] = []
+    for sd in sweep_dirs:
+        df = _load_sweep_results(sd)
+        if df is not None and not df.empty:
+            dfs.append(df)
+
+    if not dfs:
+        print("No data in any sweep directory")
+        return
+
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+    for df, label in zip(dfs, labels):
+        subset = df.sort_values("max_concurrency")
+        x = subset["max_concurrency"].astype(str)
+        ax1.plot(x, subset["output_throughput"], "o-", lw=2, ms=6, label=label)
+        ax2.plot(x, subset["mean_ttft_ms"], "o-", lw=2, ms=6, label=label)
+
+    ax1.set_xlabel("Max Concurrency")
+    ax1.set_ylabel("Output Throughput (tokens/s)")
+    ax1.set_title("Throughput vs Concurrency")
+    ax1.legend(frameon=False)
+    ax1.grid(True, alpha=0.3)
+
+    ax2.set_xlabel("Max Concurrency")
+    ax2.set_ylabel("Mean TTFT (ms)")
+    ax2.set_title("TTFT vs Concurrency")
+    ax2.legend(frameon=False)
+    ax2.grid(True, alpha=0.3)
+
+    fig.suptitle("Sweep Comparison", fontsize=14)
+    fig.savefig(output, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_throughput_vs_tpu(df: pd.DataFrame, output: Path) -> None:
+    """Scatter: throughput vs tokens per user, colored by concurrency."""
+    if df.empty:
+        return
+
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    for conc in sorted(df["max_concurrency"].unique()):
+        subset = df[df["max_concurrency"] == conc]
+        tokens_per_user = subset["output_throughput"] / conc
+        ax.scatter(
+            tokens_per_user, subset["output_throughput"],
+            s=100, alpha=0.7, label=f"Conc {conc}",
+        )
+
+    ax.set_xlabel("Tokens per User")
+    ax.set_ylabel("Output Throughput (tokens/s)")
+    ax.set_title("Throughput vs Tokens per User")
+    ax.legend(frameon=False)
+    ax.grid(True, alpha=0.3)
+
+    fig.savefig(output, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_heatmap(df: pd.DataFrame, output: Path, metric: str = "mean_ttft_ms") -> None:
+    """Annotated heatmap: request_rate rows x concurrency columns, colored by metric."""
+    if df.empty:
+        return
+
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+
+    pivot = df.pivot_table(
+        index="request_rate", columns="max_concurrency", values=metric, aggfunc="mean",
+    )
+    pivot.index = [f"Rate {r}" for r in pivot.index]
+    pivot.columns = [str(c) for c in pivot.columns]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    sns.heatmap(pivot, annot=True, fmt=".1f", cmap="YlOrRd", ax=ax)
+
+    ax.set_title(f"{metric} by Request Rate and Concurrency")
+    ax.set_xlabel("Max Concurrency")
 
     fig.savefig(output, dpi=150, bbox_inches="tight")
     plt.close(fig)
