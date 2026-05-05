@@ -1,12 +1,26 @@
 """vLLM server lifecycle: start, health-check, stop, version query."""
 import os
 import signal
+import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import List, Optional, Tuple
 
 import requests
+
+
+def _vllm_cmd_prefix() -> List[str]:
+    """Return command prefix to invoke vLLM reliably across environments."""
+    if shutil.which("vllm"):
+        return ["vllm"]
+    # Some builds provide Python package only (no console script).
+    return [
+        sys.executable,
+        "-c",
+        "from vllm.entrypoints.cli.main import main; main()",
+    ]
 
 
 def _find_vllm_processes() -> List[int]:
@@ -86,7 +100,7 @@ def start(
     log_dir.mkdir(parents=True, exist_ok=True)
     log_path = log_dir / "server.log"
 
-    cmd = ["vllm", "serve", model, "--port", str(port)]
+    cmd = _vllm_cmd_prefix() + ["serve", model, "--port", str(port)]
     if additional_args:
         cmd.extend(additional_args)
 
@@ -147,7 +161,7 @@ def _kill_process(pid: int) -> None:
 def get_engine_version() -> str:
     """Return vllm version string."""
     try:
-        result = subprocess.check_output(["vllm", "--version"], text=True, timeout=10)
+        result = subprocess.check_output(_vllm_cmd_prefix() + ["--version"], text=True, timeout=10)
         return result.strip()
     except (FileNotFoundError, subprocess.CalledProcessError,
             subprocess.TimeoutExpired):

@@ -1,6 +1,7 @@
 """Benchmark orchestration: sweep, single run, GPU sampling."""
 import shutil
 import subprocess
+import sys
 import threading
 import time
 from pathlib import Path
@@ -24,6 +25,13 @@ def _experiment_name(cfg: Dict[str, Any]) -> str:
     return dataset
 
 
+def _bench_cmd_prefix() -> List[str]:
+    """Return command prefix to invoke vllm bench reliably across environments."""
+    if shutil.which("vllm"):
+        return ["vllm"]
+    return [sys.executable, "-m", "vllm.entrypoints.cli.main"]
+
+
 def _build_bench_cmd(
     port: int,
     request_rate: float,
@@ -36,8 +44,7 @@ def _build_bench_cmd(
     result_dir: str,
 ) -> List[str]:
     """Construct vllm bench serve command."""
-    cmd = [
-        "vllm", "bench", "serve",
+    cmd = _bench_cmd_prefix() + ["bench", "serve",
         "--port", str(port),
         "--request-rate", str(request_rate),
         "--max-concurrency", str(max_concurrency),

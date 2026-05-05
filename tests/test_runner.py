@@ -55,34 +55,35 @@ def test_experiment_name_custom_dataset():
 
 def test_build_bench_command():
     """_build_bench_cmd constructs correct vllm bench serve command."""
-    cmd = runner._build_bench_cmd(
-        port=8080,
-        request_rate=8.0,
-        max_concurrency=32,
-        dataset="sharegpt",
-        dataset_path="/data/sharegpt.json",
-        num_prompts=100,
-        input_len=None,
-        output_len=None,
-        result_dir="/tmp/results",
-    )
-    assert "vllm" in cmd[0]
-    assert "bench" in cmd
-    assert "serve" in cmd
-    assert "--port" in cmd
-    assert "8080" in cmd
-    assert "--request-rate" in cmd
-    assert "8.0" in cmd
-    assert "--max-concurrency" in cmd
-    assert "32" in cmd
-    assert "--dataset-name" in cmd
-    assert "sharegpt" in cmd
-    assert "--dataset-path" in cmd
-    assert "/data/sharegpt.json" in cmd
-    assert "--num-prompts" in cmd
-    assert "100" in cmd
-    assert "--save-result" in cmd
-    assert "--result-dir" in cmd
+    with patch("shutil.which", return_value="/usr/bin/vllm"):
+        cmd = runner._build_bench_cmd(
+            port=8080,
+            request_rate=8.0,
+            max_concurrency=32,
+            dataset="sharegpt",
+            dataset_path="/data/sharegpt.json",
+            num_prompts=100,
+            input_len=None,
+            output_len=None,
+            result_dir="/tmp/results",
+        )
+        assert "vllm" in cmd[0]
+        assert "bench" in cmd
+        assert "serve" in cmd
+        assert "--port" in cmd
+        assert "8080" in cmd
+        assert "--request-rate" in cmd
+        assert "8.0" in cmd
+        assert "--max-concurrency" in cmd
+        assert "32" in cmd
+        assert "--dataset-name" in cmd
+        assert "sharegpt" in cmd
+        assert "--dataset-path" in cmd
+        assert "/data/sharegpt.json" in cmd
+        assert "--num-prompts" in cmd
+        assert "100" in cmd
+        assert "--save-result" in cmd
+        assert "--result-dir" in cmd
 
 
 def test_build_bench_command_random_dataset_skips_path():

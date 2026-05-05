@@ -8,24 +8,26 @@ import requests
 
 def test_start_constructs_correct_command():
     """start() launches vllm serve with correct arguments."""
-    with patch("lm_benchmarks.serve.cleanup_gpu_processes"):
-        with patch("lm_benchmarks.serve.cleanup_port"):
-            with patch("subprocess.Popen") as mock_popen:
-                mock_process = MagicMock()
-                mock_process.pid = 12345
-                mock_popen.return_value = mock_process
+    with patch("shutil.which", return_value="/usr/bin/vllm"):
+        with patch("lm_benchmarks.serve.cleanup_gpu_processes"):
+            with patch("lm_benchmarks.serve.cleanup_port"):
+                with patch("subprocess.Popen") as mock_popen:
+                    mock_process = MagicMock()
+                    mock_process.pid = 12345
+                    mock_popen.return_value = mock_process
 
-                with patch.object(serve, "_wait_for_health", return_value=True):
-                    pid, log_path = serve.start(
-                        model="meta-llama/Llama-3.1-8B",
-                        port=8080,
-                        log_dir="/tmp/logs",
-                        additional_args=["--tensor-parallel-size", "4"],
-                    )
+                    with patch.object(serve, "_wait_for_health", return_value=True):
+                        pid, log_path = serve.start(
+                            model="meta-llama/Llama-3.1-8B",
+                            port=8080,
+                            log_dir="/tmp/logs",
+                            additional_args=["--tensor-parallel-size", "4"],
+                        )
 
-    mock_popen.assert_called_once()
-    cmd = mock_popen.call_args[0][0]
-    assert "vllm" in cmd[0] or cmd[0].endswith("vllm")
+        mock_popen.assert_called_once()
+        # First Popen call is vllm serve
+        cmd = mock_popen.call_args[0][0]
+        assert "vllm" in cmd[0]
     assert "serve" in cmd
     assert "meta-llama/Llama-3.1-8B" in cmd
     assert "--port" in cmd
