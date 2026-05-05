@@ -9,3 +9,4 @@ results/*
 *.swp
 .DS_Store
 .worktrees/
+bin/
