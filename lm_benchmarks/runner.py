@@ -97,6 +97,7 @@ def run_single(
     timeout = config["timeout"]
     results_dir = Path(config["results_dir"])
     model_safe = utils.model_safe_name(model)
+    experiment = _experiment_name(config)
 
     experiment = _experiment_name(config)
     run_dir = (
@@ -120,6 +121,7 @@ def run_single(
                 model=model,
                 port=port,
                 log_dir=str(run_dir),
+                timeout=config["server_timeout"],
             )
 
         # 2. BENCH with GPU sampling in background

@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 DEFAULTS: Dict[str, Any] = {
     "engine": "vllm",
     "port": 8080,
-    "server_timeout": 300,
+    "server_timeout": 900,
     "gpu_memory_threshold": 0.9,
     "dataset": "random",
     "num_prompts": 100,

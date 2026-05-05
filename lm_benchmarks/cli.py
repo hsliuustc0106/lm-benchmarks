@@ -47,7 +47,13 @@ def serve(ctx: click.Context, model: str, port: Optional[int]):
     log_dir.mkdir(parents=True, exist_ok=True)
 
     extra_args = list(ctx.args) if ctx.args else None
-    pid, log_path = serve_mod.start(model=model, port=port, log_dir=str(log_dir), additional_args=extra_args)
+    pid, log_path = serve_mod.start(
+        model=model,
+        port=port,
+        log_dir=str(log_dir),
+        additional_args=extra_args,
+        timeout=cfg["server_timeout"],
+    )
 
     click.echo(f"vLLM server started (PID {pid})")
     click.echo(f"Log: {log_path}")

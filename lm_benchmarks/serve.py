@@ -91,9 +91,9 @@ def start(
     port: int = 8080,
     log_dir: Optional[str] = None,
     additional_args: Optional[List[str]] = None,
+    timeout: int = 300,
 ) -> Tuple[int, Path]:
     """Start vLLM serving. Returns (pid, log_path). Raises RuntimeError if unhealthy."""
-    cleanup_gpu_processes()
     cleanup_port(port)
 
     log_dir = Path(log_dir) if log_dir else Path("results/logs")
@@ -107,7 +107,15 @@ def start(
     log_file = open(log_path, "w")
     proc = subprocess.Popen(cmd, stdout=log_file, stderr=subprocess.STDOUT)
 
-    healthy = _wait_for_health(port, timeout=300)
+    # Stream server logs to terminal while waiting for health check
+    tail_proc = subprocess.Popen(
+        ["tail", "-f", str(log_path)],
+        stdout=sys.stdout, stderr=subprocess.STDOUT,
+    )
+
+    healthy = _wait_for_health(port, timeout=timeout)
+
+    tail_proc.terminate()
 
     if not healthy:
         # Capture tail of log for diagnostics

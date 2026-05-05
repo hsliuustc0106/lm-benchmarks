@@ -17,6 +17,7 @@ def make_config(**overrides):
         "timeout": 60,
         "results_dir": "/tmp/results",
         "engine": "vllm",
+        "server_timeout": 900,
     }
     cfg.update(overrides)
     return cfg

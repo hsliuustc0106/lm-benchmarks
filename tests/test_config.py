@@ -9,7 +9,7 @@ def test_defaults_are_set():
     cfg = config.load()
     assert cfg["engine"] == "vllm"
     assert cfg["port"] == 8080
-    assert cfg["server_timeout"] == 300
+    assert cfg["server_timeout"] == 900
     assert cfg["dataset"] == "random"
     assert cfg["num_prompts"] == 100
     assert cfg["input_len"] == 8192

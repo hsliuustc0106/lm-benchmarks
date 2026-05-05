@@ -24,9 +24,9 @@ def test_start_constructs_correct_command():
                             additional_args=["--tensor-parallel-size", "4"],
                         )
 
-        mock_popen.assert_called_once()
-        # First Popen call is vllm serve
-        cmd = mock_popen.call_args[0][0]
+        mock_popen.assert_called()
+        # First Popen call is vllm serve, second is tail -f
+        cmd = mock_popen.call_args_list[0][0][0]
         assert "vllm" in cmd[0]
     assert "serve" in cmd
     assert "meta-llama/Llama-3.1-8B" in cmd
@@ -171,17 +171,15 @@ def test_cleanup_port_kills_process_on_port():
 
 
 def test_start_cleans_up_port():
-    """start() calls cleanup_gpu_processes and cleanup_port before launching vllm."""
-    with patch("lm_benchmarks.serve.cleanup_gpu_processes") as mock_gpu_cleanup:
-        with patch("lm_benchmarks.serve.cleanup_port") as mock_port_cleanup:
-            with patch("subprocess.Popen") as mock_popen:
-                mock_process = MagicMock()
-                mock_process.pid = 12345
-                mock_popen.return_value = mock_process
-                with patch.object(serve, "_wait_for_health", return_value=True):
-                    serve.start("test/model", port=8080, log_dir="/tmp/logs")
+    """start() calls cleanup_port before launching vllm."""
+    with patch("lm_benchmarks.serve.cleanup_port") as mock_port_cleanup:
+        with patch("subprocess.Popen") as mock_popen:
+            mock_process = MagicMock()
+            mock_process.pid = 12345
+            mock_popen.return_value = mock_process
+            with patch.object(serve, "_wait_for_health", return_value=True):
+                serve.start("test/model", port=8080, log_dir="/tmp/logs")
 
-    mock_gpu_cleanup.assert_called_once()
     mock_port_cleanup.assert_called_once_with(8080)
 
 
