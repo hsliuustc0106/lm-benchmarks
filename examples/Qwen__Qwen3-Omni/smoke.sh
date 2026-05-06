@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Smoke test + sweep for Qwen/Qwen3-Omni
+# Smoke test + sweep for Qwen/Qwen3-Omni-30B-A3B-Instruct
 # Assumes vllm server is already running (use --no-server).
 #
 # Usage:
-#   bash examples/Qwen__Qwen3-Omni-Thinker/smoke.sh
-#   bash examples/Qwen__Qwen3-Omni-Thinker/smoke.sh --port 8082
+#   bash examples/Qwen__Qwen3-Omni/smoke.sh
+#   bash examples/Qwen__Qwen3-Omni/smoke.sh --port 8082
 
-MODEL="Qwen/Qwen3-Omni"
+MODEL="Qwen/Qwen3-Omni-30B-A3B-Instruct"
 NUM_PROMPTS="${NUM_PROMPTS:-10}"
 INPUT_LEN="${INPUT_LEN:-8192}"
 OUTPUT_LEN="${OUTPUT_LEN:-1024}"

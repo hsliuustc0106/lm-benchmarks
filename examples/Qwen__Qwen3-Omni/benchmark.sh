@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Benchmark script for Qwen/Qwen3-Omni
+# Benchmark script for Qwen/Qwen3-Omni-30B-A3B-Instruct
 #
 # Usage:
 #   # Full sweep (starts/stops server automatically):
-#   bash examples/Qwen__Qwen3-Omni-Thinker/benchmark.sh
+#   bash examples/Qwen__Qwen3-Omni/benchmark.sh
 #
 #   # Reuse an existing server:
-#   bash examples/Qwen__Qwen3-Omni-Thinker/benchmark.sh --no-server --port 8082
+#   bash examples/Qwen__Qwen3-Omni/benchmark.sh --no-server --port 8082
 #
 #   # Only plot existing results:
-#   bash examples/Qwen__Qwen3-Omni-Thinker/benchmark.sh --plot-only
+#   bash examples/Qwen__Qwen3-Omni/benchmark.sh --plot-only
 
-MODEL="Qwen/Qwen3-Omni"
+MODEL="Qwen/Qwen3-Omni-30B-A3B-Instruct"
 RESULTS_DIR="${RESULTS_DIR:-./results}"
 INPUT_LEN="${INPUT_LEN:-8192}"
 OUTPUT_LEN="${OUTPUT_LEN:-1024}"
